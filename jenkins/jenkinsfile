@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+
+    environment {
+        // Credentials ID from Jenkins credential manager
+        BS_CREDS = credentials('browserstack-creds') 
+        BROWSERSTACK_USERNAME = "${BS_CREDS_USR}"
+        BROWSERSTACK_ACCESS_KEY = "${BS_CREDS_PSW}"
+        // Ensure Node exists in path or use NodeJS plugin
+        PATH = "/usr/local/bin:$PATH" 
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci'
+                sh 'npx playwright install --with-deps'
+            }
+        }
+
+        stage('Run Tests Local') {
+            when {
+                expression { params.EXECUTION_TYPE == 'local' }
+            }
+            steps {
+                sh 'npx playwright test --project=chromium'
+            }
+        }
+
+        stage('Run Tests on BrowserStack') {
+            when {
+                expression { params.EXECUTION_TYPE == 'cloud' }
+            }
+            steps {
+                // Pass the execution=cloud env var to trigger config logic
+                sh 'execution=cloud npx playwright test --project=bs-chrome'
+            }
+        }
+    }
+
+    post {
+        always {
+            // Publish HTML Report
+            publishHTML (target: [
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'playwright-report',
+                reportFiles: 'index.html',
+                reportName: 'Playwright Report'
+            ])
+            // Publish JUnit Results (for trend graphs)
+            junit 'results.xml'
+        }
+    }
+}
