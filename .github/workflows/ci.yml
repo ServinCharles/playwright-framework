@@ -59,3 +59,26 @@ jobs:
             playwright-report/
             reports/junit/
           if-no-files-found: ignore
+
+  infra:
+    name: Terraform and Docker checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Terraform format and validate (no AWS account needed)
+        working-directory: infra
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+      - name: Build the container image (not pushed)
+        run: docker build -t chat-service:ci .
+      - name: Container starts and answers /health
+        run: |
+          docker run -d --name svc -p 3101:3101 -e ALLOW_FAKE_MODEL=1 chat-service:ci
+          for i in $(seq 1 20); do curl -fs localhost:3101/health && exit 0; sleep 1; done
+          docker logs svc
+          exit 1

@@ -1,7 +1,9 @@
 import http from 'http';
 import { randomUUID } from 'crypto';
 import { ChatRequestSchema, type ChatResponse } from '../ai/contract';
-import { respond, type Mode } from './assistant';
+import { respond, type AssistantResult, type Mode } from './assistant';
+
+export type Responder = (message: string) => AssistantResult | Promise<AssistantResult>;
 
 const MAX_BODY_BYTES = 10_000;
 
@@ -10,15 +12,48 @@ function send(res: http.ServerResponse, status: number, body: unknown, requestId
   res.end(JSON.stringify(body));
 }
 
-export function buildServer(mode: Mode = 'safe'): http.Server {
+export interface ServerHooks {
+  /** Called after a response is sent. Must never throw into the request. Used for webhooks. */
+  onResult?: (info: { requestId: string; result: AssistantResult }) => void | Promise<void>;
+}
+
+/** Split a reply into small pieces for streaming. */
+export function chunkReply(reply: string): string[] {
+  return reply.match(/\S+\s*/g) ?? [reply];
+}
+
+/**
+ * Server-sent events. The reply is already fully checked by the guards before the first
+ * token goes out. Streaming raw model output would let an unsafe sentence reach the customer
+ * before the output guard could see the whole answer.
+ */
+function stream(res: http.ServerResponse, body: ChatResponse): void {
+  res.writeHead(200, {
+    'content-type': 'text/event-stream',
+    'cache-control': 'no-cache',
+    connection: 'keep-alive',
+    'x-request-id': body.requestId,
+  });
+  const event = (name: string, data: unknown): void => {
+    res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  for (const text of chunkReply(body.reply)) event('token', { text });
+  event('done', body);
+  res.end();
+}
+
+export function buildServer(mode: Mode | Responder = 'safe', hooks: ServerHooks = {}): http.Server {
+  const label = typeof mode === 'string' ? mode : 'custom';
+  const answer: Responder = typeof mode === 'string' ? (m) => respond(m, mode) : mode;
   return http.createServer((req, res) => {
     const requestId = randomUUID();
 
     if (req.method === 'GET' && req.url === '/health') {
-      return send(res, 200, { status: 'ok', mode }, requestId);
+      return send(res, 200, { status: 'ok', mode: label }, requestId);
     }
 
-    if (req.url !== '/chat') {
+    const streaming = req.url === '/chat/stream';
+    if (req.url !== '/chat' && !streaming) {
       return send(res, 404, { error: 'Not found' }, requestId);
     }
     if (req.method !== 'POST') {
@@ -52,10 +87,17 @@ export function buildServer(mode: Mode = 'safe'): http.Server {
           requestId,
         );
       }
-      const result = respond(request.data.message, mode);
-      const body: ChatResponse = { ...result, requestId };
-      // Small fixed delay keeps latency checks realistic without making tests slow
-      setTimeout(() => send(res, 200, body, requestId), 10);
+      Promise.resolve(answer(request.data.message))
+        .then((result) => {
+          const { reply, intent, escalated } = result;
+          const body: ChatResponse = { reply, intent, escalated, requestId };
+          // Fire-and-forget: a slow or broken webhook must never slow down or break the chat
+          Promise.resolve(hooks.onResult?.({ requestId, result })).catch(() => undefined);
+          if (streaming) return stream(res, body);
+          // Small fixed delay keeps latency checks realistic without making tests slow
+          setTimeout(() => send(res, 200, body, requestId), 10);
+        })
+        .catch(() => send(res, 500, { error: 'Internal error' }, requestId));
     });
   });
 }
