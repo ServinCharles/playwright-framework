@@ -1,0 +1,11 @@
+node_modules
+reports
+test-results
+playwright-report
+.auth
+.env
+.git
+ai-generated
+infra
+tests
+docs

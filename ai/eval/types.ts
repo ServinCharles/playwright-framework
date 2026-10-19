@@ -9,6 +9,8 @@ export interface EvalCase {
     escalated?: boolean;
     mustContain?: string[];
     mustNotContain?: string[];
+    /** Optional plain-English rubric. Graded by the LLM judge when judging is switched on. */
+    rubric?: string;
   };
 }
 

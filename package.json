@@ -26,7 +26,13 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm run lint && npm run test:unit && npm run test:api && npm run test:ai-eval && npm run eval",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "chat-service": "tsx chat-service/server.ts",
+    "eval:calibrate": "tsx ai/eval/calibrate.ts",
+    "agent-service": "tsx agent/server.ts",
+    "mcp": "tsx mcp/stdio.ts",
+    "demo:traces": "tsx observability/demo.ts",
+    "dashboard": "tsx observability/dashboard.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -40,5 +46,14 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.0",
     "zod": "^4.6.7"
+  },
+  "dependencies": {
+    "@langchain/langgraph": "^1.5.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/context-async-hooks": "^2.12.0",
+    "@opentelemetry/core": "^2.12.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.223.0",
+    "@opentelemetry/sdk-trace-base": "^2.12.0"
   }
 }
