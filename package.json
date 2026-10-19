@@ -1,15 +1,44 @@
 {
-  "name": "playwright-framework",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "playwright-ai-framework",
+  "version": "2.0.0",
+  "description": "Playwright + TypeScript test framework with API tests, AI evaluation, and an AI test generator with a human review gate",
+  "private": true,
+  "license": "MIT",
   "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:ui": "playwright test --project=ui-chromium",
+    "test:api": "playwright test --project=api",
+    "test:unit": "playwright test --project=unit",
+    "test:ai-eval": "playwright test --project=ai-eval",
+    "chat-api": "tsx mock-chat-api/server.ts",
+    "eval": "tsx ai/eval/run-eval.ts",
+    "ai:generate": "tsx ai/generator/cli.ts",
+    "ai:promote": "tsx ai/review/promote.ts",
+    "ai:stats": "tsx ai/review/stats.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run test:unit && npm run test:api && npm run test:ai-eval && npm run eval",
+    "report": "playwright show-report"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
-    "@types/node": "^24.10.1"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "dotenv": "^18.0.8",
+    "eslint": "^10.13.0",
+    "eslint-plugin-playwright": "^2.12.1",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "zod": "^4.6.7"
   }
 }
