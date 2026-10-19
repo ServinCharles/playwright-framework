@@ -1,79 +1,100 @@
 import { defineConfig, devices } from '@playwright/test';
+import { env, isLocalUrl } from './utils/env';
+import { getBrowserStackCaps } from './utils/bs-caps';
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+const AUTH_FILE = '.auth/standard.json';
+const chatUrl = new URL(env.chatApiUrl);
+const useLocalChatApi = isLocalUrl(env.chatApiUrl);
+const allBrowsers = process.env.ALL_BROWSERS === '1';
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
   testDir: './tests',
-  /* Run tests in files in parallel */
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
   fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  forbidOnly: env.isCI,
+  retries: env.isCI ? 2 : 0,
+  workers: env.isCI ? 2 : undefined,
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['junit', { outputFile: 'reports/junit/results.xml' }],
+  ],
   use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
-    // baseURL: 'http://localhost:3000',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    baseURL: env.baseUrl,
+    // SauceDemo marks elements with data-test, so getByTestId works out of the box
+    testIdAttribute: 'data-test',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
 
-  /* Configure projects for major browsers */
+  // The local mock chat API is started automatically unless CHAT_API_URL points to another machine
+  webServer: useLocalChatApi
+    ? {
+        command: 'npx tsx mock-chat-api/server.ts',
+        url: `${chatUrl.origin}/health`,
+        env: { PORT: chatUrl.port || '3100' },
+        reuseExistingServer: !env.isCI,
+        timeout: 30_000,
+      }
+    : undefined,
+
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
+    // Logs in once and stores the session so UI tests do not repeat the login
+    { name: 'setup', testMatch: /auth\.setup\.ts/ },
 
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: 'ui-chromium',
+      testMatch: /tests\/ui\/.*\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
     },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    { name: 'api', testMatch: /tests\/api\/.*\.spec\.ts/ },
+    { name: 'ai-eval', testMatch: /tests\/ai-eval\/.*\.spec\.ts/ },
+    { name: 'unit', testMatch: /tests\/unit\/.*\.spec\.ts/ },
 
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
+    // Extra local browsers: ALL_BROWSERS=1 npx playwright test --project=ui-firefox
+    ...(allBrowsers
+      ? [
+          {
+            name: 'ui-firefox',
+            testMatch: /tests\/ui\/.*\.spec\.ts/,
+            dependencies: ['setup'],
+            use: { ...devices['Desktop Firefox'], storageState: AUTH_FILE },
+          },
+          {
+            name: 'ui-mobile-safari',
+            testMatch: /tests\/ui\/.*\.spec\.ts/,
+            dependencies: ['setup'],
+            use: { ...devices['iPhone 13'], storageState: AUTH_FILE },
+          },
+        ]
+      : []),
 
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
+    // BrowserStack projects exist only when execution=cloud
+    ...(env.isCloud
+      ? [
+          {
+            name: 'bs-chrome',
+            testMatch: /tests\/ui\/.*\.spec\.ts/,
+            dependencies: ['setup'],
+            use: {
+              storageState: AUTH_FILE,
+              connectOptions: { wsEndpoint: getBrowserStackCaps('chrome') },
+            },
+          },
+          {
+            name: 'bs-iphone',
+            testMatch: /tests\/ui\/.*\.spec\.ts/,
+            dependencies: ['setup'],
+            use: {
+              storageState: AUTH_FILE,
+              connectOptions: { wsEndpoint: getBrowserStackCaps('safari', 'iPhone 13') },
+            },
+          },
+        ]
+      : []),
   ],
-
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
 });
