@@ -9,3 +9,6 @@ blob-report/
 results.xml
 # AI drafts waiting for review stay out of git until promoted
 ai-generated/
+infra/.terraform/
+infra/*.tfstate*
+infra/terraform.tfvars

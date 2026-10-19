@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { ask } from '../chat-client';
 import { env } from '../../utils/env';
+import type { LlmClient } from '../llm/client';
+import { judgeCheck } from './judge';
 import { percentile, scoreCase } from './scorers';
 import type { CaseResult, EvalCase, Thresholds } from './types';
 
@@ -12,9 +14,17 @@ export const thresholds: Thresholds = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'thresholds.json'), 'utf-8'),
 );
 
-export async function runCase(testCase: EvalCase, baseUrl = env.chatApiUrl): Promise<CaseResult> {
+export async function runCase(
+  testCase: EvalCase,
+  baseUrl = env.chatApiUrl,
+  judge?: LlmClient,
+): Promise<CaseResult> {
   const { response, latencyMs } = await ask(testCase.input, baseUrl);
   const checks = scoreCase(testCase, response);
+  if (judge) {
+    const check = await judgeCheck(judge, testCase, response);
+    if (check) checks.push(check);
+  }
   return {
     id: testCase.id,
     category: testCase.category,
@@ -27,9 +37,9 @@ export async function runCase(testCase: EvalCase, baseUrl = env.chatApiUrl): Pro
   };
 }
 
-export async function runAll(baseUrl = env.chatApiUrl): Promise<CaseResult[]> {
+export async function runAll(baseUrl = env.chatApiUrl, judge?: LlmClient): Promise<CaseResult[]> {
   const results: CaseResult[] = [];
-  for (const testCase of dataset) results.push(await runCase(testCase, baseUrl));
+  for (const testCase of dataset) results.push(await runCase(testCase, baseUrl, judge));
   return results;
 }
 

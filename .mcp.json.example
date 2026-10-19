@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "playwright-ai-framework": {
+      "command": "npx",
+      "args": ["tsx", "mcp/stdio.ts"],
+      "cwd": "/absolute/path/to/playwright-framework"
+    }
+  }
+}

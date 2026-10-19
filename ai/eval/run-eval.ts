@@ -5,12 +5,15 @@
  *   npm run eval                          # evaluates the built-in mock
  *   CHAT_API_URL=https://... npm run eval # evaluates a real service
  *   CHAT_API_MODE=buggy npm run eval      # shows the gate failing
+ *   JUDGE=1 npm run eval                  # also grade rubric cases with an LLM judge
  */
 import fs from 'fs';
 import path from 'path';
 import type { AddressInfo } from 'net';
 import { buildServer } from '../../mock-chat-api/server';
 import { env, isLocalUrl } from '../../utils/env';
+import type { LlmClient } from '../llm/client';
+import { createLlmClient } from '../llm/factory';
 import { runAll, summarise, toMarkdown } from './runner';
 
 /** Uses CHAT_API_URL when it points to another machine, otherwise starts the local mock on a free port. */
@@ -30,7 +33,14 @@ async function withTarget<T>(run: (baseUrl: string) => Promise<T>): Promise<T> {
 }
 
 async function main(): Promise<void> {
-  const results = await withTarget((baseUrl) => runAll(baseUrl));
+  // JUDGE=1 grades cases that have a rubric with a real LLM (needs ANTHROPIC_API_KEY)
+  let judge: LlmClient | undefined;
+  if (process.env.JUDGE === '1') {
+    judge = createLlmClient();
+    if (!judge) throw new Error('JUDGE=1 needs ANTHROPIC_API_KEY. The judge must be a real model.');
+    console.log(`LLM judge on: ${judge.name}`);
+  }
+  const results = await withTarget((baseUrl) => runAll(baseUrl, judge));
   const summary = summarise(results);
 
   const outDir = path.resolve(__dirname, '../../reports/eval');
