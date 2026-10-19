@@ -1,1 +1,11 @@
 node_modules/
+.env
+.auth/
+.DS_Store
+playwright-report/
+test-results/
+reports/
+blob-report/
+results.xml
+# AI drafts waiting for review stay out of git until promoted
+ai-generated/
