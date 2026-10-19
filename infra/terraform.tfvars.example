@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars (which is git-ignored) and fill in.
+vpc_id            = "vpc-0123456789abcdef0"
+public_subnet_ids = ["subnet-0aaa1111bbb22222c", "subnet-0ddd3333eee44444f"]
+image             = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/chat-service:1.0.0"
+certificate_arn   = "arn:aws:acm:eu-west-2:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+# webhook_url     = "https://hooks.example.com/escalations"

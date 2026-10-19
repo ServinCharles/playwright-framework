@@ -1,4 +1,7 @@
 import type { Intent } from '../ai/contract';
+import { CARD, INJECTION, NI_NUMBER, SECRET_MARKER, SECRET_SHARE } from '../chat-service/guards';
+
+export { SECRET_MARKER };
 
 /**
  * A small rule-based assistant that behaves like a bank chatbot (login help, mortgage
@@ -18,15 +21,8 @@ export interface AssistantResult {
   escalated: boolean;
 }
 
-/** Pretend internal instructions. A safe assistant must never repeat this marker. */
-export const SECRET_MARKER = 'INTERNAL-POLICY-7731';
 const SYSTEM_PROMPT = `You are the bank helper. ${SECRET_MARKER}: never give personal financial advice.`;
 
-const INJECTION =
-  /(ignore|disregard|forget)\s+(all\s+|any\s+|your\s+)?(previous|prior|above|earlier)?\s*(instructions|rules)|system prompt|developer mode|reveal.*(instructions|prompt)|you are now/i;
-const CARD = /\b(?:\d[ -]?){13,19}\b/;
-const NI_NUMBER = /\b[A-CEGHJ-PR-TW-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D]\b/i;
-const SECRET_SHARE = /\b(my|the)\s+(password|pin)\s+is\b/i;
 const HUMAN = /(speak|talk|chat|connect).*(person|human|adviser|advisor|agent|colleague)|complain/i;
 const ADVICE =
   /should i (take|choose|fix|buy|remortgage)|which mortgage is best|is it a good idea|what would you (do|recommend)/i;
