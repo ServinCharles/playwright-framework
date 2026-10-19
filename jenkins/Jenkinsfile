@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'EXECUTION_TYPE', choices: ['local', 'cloud'], description: 'local = Chromium on the agent, cloud = BrowserStack')
+        choice(name: 'SUITE', choices: ['smoke', 'regression', 'all'], description: 'Which tagged tests to run')
+    }
+
+    environment {
+        // Never hardcode secrets. Store them in Jenkins credentials.
+        BS_CREDS = credentials('browserstack-creds')
+        BROWSERSTACK_USERNAME = "${BS_CREDS_USR}"
+        BROWSERSTACK_ACCESS_KEY = "${BS_CREDS_PSW}"
+        CI = 'true'
+    }
+
+    options {
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Install') {
+            steps {
+                sh 'npm ci'
+                sh 'npx playwright install --with-deps chromium'
+            }
+        }
+
+        stage('Static checks') {
+            steps {
+                sh 'npm run typecheck'
+                sh 'npm run lint'
+            }
+        }
+
+        stage('Unit, API and AI evaluation') {
+            steps {
+                sh 'npm run test:unit'
+                sh 'npm run test:api'
+                sh 'npm run test:ai-eval'
+            }
+        }
+
+        stage('UI tests (local)') {
+            when { expression { params.EXECUTION_TYPE == 'local' } }
+            steps {
+                script {
+                    def grep = params.SUITE == 'all' ? '' : "--grep @${params.SUITE}"
+                    sh "npx playwright test --project=ui-chromium ${grep}"
+                }
+            }
+        }
+
+        stage('UI tests (BrowserStack)') {
+            when { expression { params.EXECUTION_TYPE == 'cloud' } }
+            steps {
+                script {
+                    def grep = params.SUITE == 'all' ? '' : "--grep @${params.SUITE}"
+                    sh "execution=cloud npx playwright test --project=bs-chrome ${grep}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'playwright-report',
+                reportFiles: 'index.html',
+                reportName: 'Playwright Report'
+            ])
+            junit allowEmptyResults: true, testResults: 'reports/junit/results.xml'
+            archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+        }
+    }
+}
