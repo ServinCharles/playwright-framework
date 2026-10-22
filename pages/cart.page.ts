@@ -15,6 +15,14 @@ export class CartPage extends BasePage {
     this.checkoutButton = page.getByTestId('checkout');
   }
 
+  async open(): Promise<void> {
+    await this.goto('/cart.html');
+  }
+
+  async removeItem(slug: string): Promise<void> {
+    await this.page.getByTestId(`remove-${slug}`).click();
+  }
+
   async startCheckout(): Promise<void> {
     await this.checkoutButton.click();
   }
