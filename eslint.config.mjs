@@ -23,6 +23,14 @@ export default tseslint.config(
       'playwright/no-focused-test': 'error',
       'playwright/no-skipped-test': 'warn',
       'playwright/expect-expect': 'error',
+      // Fixed sleeps hide races: wait for a condition (expect.poll, flush(), a locator) instead
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='setTimeout']",
+          message: 'Do not sleep in tests. Wait for a condition or an explicit flush() instead.',
+        },
+      ],
     },
   },
 );

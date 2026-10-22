@@ -16,13 +16,20 @@ const listen = async (server: http.Server): Promise<string> => {
 const close = (server: http.Server): Promise<unknown> =>
   new Promise((resolve) => server.close(resolve));
 
+type Stack = {
+  chat: string;
+  receiver: ReturnType<typeof createReceiver>;
+  /** Waits until every webhook started by the chat service has finished. */
+  flush: () => Promise<void>;
+};
+
 async function withStack<T>(
   options: { failFirst?: number; behaviour?: Behaviour; webhookSecret?: string },
-  fn: (ctx: { chat: string; receiver: ReturnType<typeof createReceiver> }) => Promise<T>,
+  fn: (ctx: Stack) => Promise<T>,
 ): Promise<T> {
   const receiver = createReceiver({ secret, failFirst: options.failFirst });
   const receiverUrl = await listen(receiver.server);
-  const { server } = buildChatService({
+  const { server, flush } = buildChatService({
     llm: fakeModel(options.behaviour ?? 'good'),
     webhook: {
       url: `${receiverUrl}/hook`,
@@ -33,7 +40,7 @@ async function withStack<T>(
   });
   const chat = await listen(server);
   try {
-    return await fn({ chat, receiver });
+    return await fn({ chat, receiver, flush });
   } finally {
     await close(server);
     await close(receiver.server);
@@ -47,20 +54,15 @@ const post = (url: string, message: string, path = '/chat') =>
     body: JSON.stringify({ message }),
   });
 
-async function waitFor(check: () => boolean, ms = 3000): Promise<void> {
-  const end = Date.now() + ms;
-  while (!check() && Date.now() < end) await new Promise((r) => setTimeout(r, 20));
-}
-
 test.describe('Escalation webhook', () => {
   test('an escalation sends one verified event with no customer text @critical', async () => {
-    await withStack({}, async ({ chat, receiver }) => {
+    await withStack({}, async ({ chat, receiver, flush }) => {
       const message = 'I want to speak to a person about zebra-4242';
       const response = await post(chat, message);
       const body = ChatResponseSchema.parse(await response.json());
       expect(body.escalated).toBe(true);
 
-      await waitFor(() => receiver.events.length > 0);
+      await flush();
       expect(receiver.events).toHaveLength(1);
       expect(receiver.events[0]).toMatchObject({
         type: 'chat.escalated',
@@ -71,17 +73,19 @@ test.describe('Escalation webhook', () => {
   });
 
   test('a normal answer sends nothing', async () => {
-    await withStack({}, async ({ chat, receiver }) => {
-      await post(chat, 'How do I reset my password?');
-      await new Promise((r) => setTimeout(r, 150));
+    await withStack({}, async ({ chat, receiver, flush }) => {
+      const response = await post(chat, 'How do I reset my password?');
+      expect(ChatResponseSchema.parse(await response.json()).escalated).toBe(false);
+
+      await flush();
       expect(receiver.requests).toHaveLength(0);
     });
   });
 
   test('a flaky receiver still gets exactly one event, after retries @critical', async () => {
-    await withStack({ failFirst: 2 }, async ({ chat, receiver }) => {
+    await withStack({ failFirst: 2 }, async ({ chat, receiver, flush }) => {
       await post(chat, 'I want to speak to a person');
-      await waitFor(() => receiver.events.length > 0);
+      await flush();
       expect(receiver.events).toHaveLength(1);
       expect(receiver.requests.map((r) => r.status)).toEqual([503, 503, 200]);
       // Same id on every attempt, which is what lets a receiver dedupe
@@ -90,10 +94,9 @@ test.describe('Escalation webhook', () => {
   });
 
   test('a wrong secret is rejected by the receiver and not retried', async () => {
-    await withStack({ webhookSecret: 'wrong' }, async ({ chat, receiver }) => {
+    await withStack({ webhookSecret: 'wrong' }, async ({ chat, receiver, flush }) => {
       await post(chat, 'I want to speak to a person');
-      await waitFor(() => receiver.requests.length > 0);
-      await new Promise((r) => setTimeout(r, 100));
+      await flush();
       expect(receiver.events).toHaveLength(0);
       expect(receiver.requests.map((r) => r.status)).toEqual([401]);
     });
