@@ -12,7 +12,10 @@ export async function callChat(message: unknown, baseUrl = env.chatApiUrl): Prom
   const started = performance.now();
   const response = await fetch(`${baseUrl}/chat`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(env.chatApiKey ? { 'x-api-key': env.chatApiKey } : {}),
+    },
     body: JSON.stringify({ message }),
   });
   const latencyMs = performance.now() - started;
