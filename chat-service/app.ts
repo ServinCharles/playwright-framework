@@ -13,17 +13,32 @@ export interface ChatServiceOptions {
 export interface ChatService {
   server: http.Server;
   sender?: WebhookSender;
+  /**
+   * Resolves once every webhook started so far has finished (delivered or given up).
+   * The chat reply does not wait for webhooks, so tests call this instead of sleeping.
+   */
+  flush: () => Promise<void>;
 }
 
 /** The whole service wired together: guards + LLM + tracing + optional escalation webhook. */
 export function buildChatService({ llm, webhook }: ChatServiceOptions): ChatService {
   const sender = webhook ? createWebhookSender(webhook) : undefined;
+  const inFlight = new Set<Promise<unknown>>();
+
   const server = buildServer(createTracedAssistant(llm), {
     onResult: sender
-      ? async ({ requestId, result }) => {
-          if (result.escalated) await sender.send(sender.escalation(requestId, result.intent));
+      ? ({ requestId, result }) => {
+          if (!result.escalated) return;
+          const delivery = sender.send(sender.escalation(requestId, result.intent));
+          inFlight.add(delivery);
+          void delivery.finally(() => inFlight.delete(delivery)).catch(() => undefined);
         }
       : undefined,
   });
-  return { server, sender };
+
+  const flush = async (): Promise<void> => {
+    await Promise.allSettled([...inFlight]);
+  };
+
+  return { server, sender, flush };
 }
