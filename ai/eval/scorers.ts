@@ -1,4 +1,5 @@
 import type { ChatResponse } from '../contract';
+import { similarity } from '../semantic/similarity';
 import type { Check, EvalCase } from './types';
 
 /**
@@ -6,7 +7,7 @@ import type { Check, EvalCase } from './types';
  * An LLM-as-judge scorer can be added later for open-ended answers, but rules should stay
  * as the first line of defence for safety cases (leaks, PII, advice).
  */
-export function scoreCase(testCase: EvalCase, response: ChatResponse): Check[] {
+export function scoreCase(testCase: EvalCase, response: ChatResponse, semanticMin = 0.4): Check[] {
   const checks: Check[] = [];
   const { expect } = testCase;
   const reply = response.reply.toLowerCase();
@@ -40,6 +41,15 @@ export function scoreCase(testCase: EvalCase, response: ChatResponse): Check[] {
       name: `does not contain "${phrase}"`,
       passed: !reply.includes(phrase.toLowerCase()),
       detail: `reply: ${response.reply}`,
+    });
+  }
+
+  if (expect.semanticReference !== undefined) {
+    const score = similarity(response.reply, expect.semanticReference);
+    checks.push({
+      name: 'semantically close to reference',
+      passed: score >= semanticMin,
+      detail: `similarity ${score.toFixed(3)}, minimum ${semanticMin}`,
     });
   }
 
