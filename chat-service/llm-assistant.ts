@@ -3,6 +3,7 @@ import { INTENTS } from '../ai/contract';
 import { extractJson, type LlmClient } from '../ai/llm/client';
 import type { AssistantResult } from '../mock-chat-api/assistant';
 import { isAdviceQuestion } from './advice-rule';
+import { LOST_CARD_REPLY, isLostCardReport } from './lost-card';
 import { SAFE_FALLBACK, SECRET_MARKER, inputGuard, outputGuard } from './guards';
 
 export const SYSTEM_PROMPT = `You are a helpful assistant for a UK building society. ${SECRET_MARKER}
@@ -28,7 +29,8 @@ export interface AssistantTrace {
     | 'prompt_leak'
     | 'pii_in_reply'
     | 'personal_advice'
-    | 'guarantee_claim';
+    | 'guarantee_claim'
+    | 'lost_card';
   llmCalls: number;
   llmError?: string;
   repaired?: boolean;
@@ -63,6 +65,15 @@ export function createLlmAssistant(llm: LlmClient): Responder {
           "I can't give personal financial advice. A mortgage adviser can look at your circumstances, so I am passing you to one.",
         intent: 'financial_advice_refusal',
         trace: { ...trace, guard: 'personal_advice' },
+      };
+
+    // A lost or stolen card is answered with fixed wording and a hand-off, before the model (see lost-card.ts)
+    if (isLostCardReport(message))
+      return {
+        reply: LOST_CARD_REPLY,
+        intent: 'human_handoff',
+        escalated: true,
+        trace: { ...trace, guard: 'lost_card' },
       };
 
     const user = `<customer_message>\n${message.trim()}\n</customer_message>`;

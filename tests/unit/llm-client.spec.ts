@@ -29,6 +29,23 @@ test.describe('Anthropic client', () => {
     expect(body).toMatchObject({ model: 'm', temperature: 0, system: 's' });
   });
 
+  test('retries without temperature when the model rejects it', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const client = anthropicClient('k', 'm', {
+      fetchImpl: async (_url, init) => {
+        const body = JSON.parse(String(init?.body));
+        bodies.push(body);
+        if ('temperature' in body) {
+          return new Response('`temperature` is deprecated for this model.', { status: 400 });
+        }
+        return new Response(JSON.stringify({ content: [{ type: 'text', text: 'ok' }] }));
+      },
+    });
+    expect((await client.complete({ system: 's', user: 'u' })).text).toBe('ok');
+    await client.complete({ system: 's', user: 'u' });
+    expect(bodies.map((b) => 'temperature' in b)).toEqual([true, false, false]);
+  });
+
   test('turns an HTTP error into an LlmError with the status', async () => {
     const client = anthropicClient('k', 'm', {
       fetchImpl: fakeFetch(529, { error: 'overloaded' }),

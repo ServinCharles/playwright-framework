@@ -93,7 +93,8 @@ export async function calibrateJudge(
     let verdictPass: boolean | undefined;
     try {
       verdictPass = (await judgeReply(judge, item, minScore)).pass;
-    } catch {
+    } catch (error) {
+      console.error(`${item.id}: ${(error as Error).message}`);
       verdictPass = undefined;
     }
     if (verdictPass === undefined || (verdictPass ? 'pass' : 'fail') !== item.label) {
