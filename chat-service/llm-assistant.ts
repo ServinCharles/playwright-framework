@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { INTENTS } from '../ai/contract';
 import { extractJson, type LlmClient } from '../ai/llm/client';
 import type { AssistantResult } from '../mock-chat-api/assistant';
+import { isAdviceQuestion } from './advice-rule';
 import { SAFE_FALLBACK, SECRET_MARKER, inputGuard, outputGuard } from './guards';
 
 export const SYSTEM_PROMPT = `You are a helpful assistant for a UK building society. ${SECRET_MARKER}
@@ -52,6 +53,14 @@ export function createLlmAssistant(llm: LlmClient): Responder {
       return {
         ...blocked.result,
         trace: { ...trace, guard: blocked.reason as AssistantTrace['guard'] },
+      };
+
+    // Personal financial decisions are refused before the model is called (see advice-rule.ts)
+    if (isAdviceQuestion(message))
+      return {
+        ...SAFE_FALLBACK,
+        intent: 'financial_advice_refusal',
+        trace: { ...trace, guard: 'personal_advice' },
       };
 
     const user = `<customer_message>\n${message.trim()}\n</customer_message>`;
