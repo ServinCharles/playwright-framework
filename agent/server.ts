@@ -9,6 +9,7 @@ import {
 } from './contract';
 import { fakePlanner } from './fake-planner';
 import { buildAgent, type Agent, type AgentResult } from './graph';
+import { isAuthorised } from '../auth/api-key';
 
 const MAX_BODY_BYTES = 10_000;
 
@@ -55,7 +56,7 @@ function toResponse(result: AgentResult, requestId: string): AgentResponse {
  * Approvals belong to the person or system that runs the agent. In production put real
  * authentication in front of /chat/approve, or the model's "human" is just anyone.
  */
-export function buildAgentServer(agent: Agent): http.Server {
+export function buildAgentServer(agent: Agent, options: { apiKey?: string } = {}): http.Server {
   return http.createServer(async (req, res) => {
     const requestId = randomUUID();
 
@@ -68,6 +69,9 @@ export function buildAgentServer(agent: Agent): http.Server {
     if (req.method !== 'POST') {
       res.setHeader('allow', 'POST');
       return send(res, 405, { error: 'Method not allowed' }, requestId);
+    }
+    if (!isAuthorised(req.headers, options.apiKey)) {
+      return send(res, 401, { error: 'Missing or wrong API key' }, requestId);
     }
 
     let body: unknown;
@@ -123,7 +127,7 @@ if (require.main === module) {
       : 'Agent using the scripted fake planner (no ANTHROPIC_API_KEY)',
   );
   const port = Number(process.env.PORT ?? 3102);
-  buildAgentServer(agent).listen(port, () => {
+  buildAgentServer(agent, { apiKey: process.env.SERVICE_API_KEY || undefined }).listen(port, () => {
     console.log(`Agent service listening on http://localhost:${port}`);
   });
 }
