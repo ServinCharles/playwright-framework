@@ -14,9 +14,46 @@
 export type Embedder = (text: string) => Map<string, number>;
 
 const STOPWORDS = new Set([
-  'a', 'an', 'the', 'and', 'or', 'of', 'to', 'in', 'on', 'for', 'with', 'is', 'are', 'was',
-  'be', 'it', 'this', 'that', 'you', 'your', 'can', 'i', 'my', 'me', 'we', 'our', 'at', 'by',
-  'from', 'do', 'does', 'how', 'what', 'if', 'so', 'as', 'not', 'will', 'just', 'please',
+  'a',
+  'an',
+  'the',
+  'and',
+  'or',
+  'of',
+  'to',
+  'in',
+  'on',
+  'for',
+  'with',
+  'is',
+  'are',
+  'was',
+  'be',
+  'it',
+  'this',
+  'that',
+  'you',
+  'your',
+  'can',
+  'i',
+  'my',
+  'me',
+  'we',
+  'our',
+  'at',
+  'by',
+  'from',
+  'do',
+  'does',
+  'how',
+  'what',
+  'if',
+  'so',
+  'as',
+  'not',
+  'will',
+  'just',
+  'please',
 ]);
 
 /** Strip plurals and common suffixes so "payments" and "payment" count as one word. */
@@ -54,7 +91,8 @@ export const bagOfWords: Embedder = (text) => {
 export function cosine(a: Map<string, number>, b: Map<string, number>): number {
   let dot = 0;
   for (const [term, weight] of a) dot += weight * (b.get(term) ?? 0);
-  const norm = (v: Map<string, number>): number => Math.sqrt([...v.values()].reduce((s, x) => s + x * x, 0));
+  const norm = (v: Map<string, number>): number =>
+    Math.sqrt([...v.values()].reduce((s, x) => s + x * x, 0));
   const denom = norm(a) * norm(b);
   return denom === 0 ? 0 : dot / denom;
 }

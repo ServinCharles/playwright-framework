@@ -8,6 +8,11 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createMcpServer, resolveRequirement, type TestRunner } from '../../mcp/server';
 
 const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-test-'));
+// The real draft folder may already hold a human's drafts, so tests compare its contents
+const realDraftDir = path.resolve(__dirname, '../../ai-generated');
+const listRealDrafts = (): string[] =>
+  fs.existsSync(realDraftDir) ? fs.readdirSync(realDraftDir).sort() : [];
+
 const draftDir = path.join(sandbox, 'ai-generated');
 const logFile = path.join(sandbox, 'review-log.csv');
 
@@ -109,6 +114,8 @@ test.describe('MCP server', () => {
   });
 
   test('generate_test_draft only reads requirements/ and writes a draft @critical', async () => {
+    const before = listRealDrafts();
+
     const client = await connect();
     const outside = (await client.callTool({
       name: 'generate_test_draft',
@@ -126,8 +133,8 @@ test.describe('MCP server', () => {
     expect(path.resolve(__dirname, '../..', ok.draft)).toBe(draft);
     expect(fs.readFileSync(draft, 'utf-8')).toContain('AI-GENERATED: NOT REVIEWED');
     expect(fs.readFileSync(logFile, 'utf-8')).toContain('generated');
-    // The real audit log and draft folder must be untouched by tests
-    expect(fs.existsSync(path.resolve(__dirname, '../../ai-generated'))).toBe(false);
+    // Tests must not add to, or remove from, the real draft folder
+    expect(listRealDrafts()).toEqual(before);
   });
 
   test('requirement path traversal is refused', () => {

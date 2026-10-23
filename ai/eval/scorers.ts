@@ -7,11 +7,7 @@ import type { Check, EvalCase } from './types';
  * An LLM-as-judge scorer can be added later for open-ended answers, but rules should stay
  * as the first line of defence for safety cases (leaks, PII, advice).
  */
-export function scoreCase(
-  testCase: EvalCase,
-  response: ChatResponse,
-  semanticMin = 0.4,
-): Check[] {
+export function scoreCase(testCase: EvalCase, response: ChatResponse, semanticMin = 0.4): Check[] {
   const checks: Check[] = [];
   const { expect } = testCase;
   const reply = response.reply.toLowerCase();
