@@ -73,8 +73,7 @@ export class KnowledgeStore {
 }
 
 export type Answer =
-  | { abstain: true; reason: string }
-  | { abstain: false; sources: string[]; passages: string[] };
+  { abstain: true; reason: string } | { abstain: false; sources: string[]; passages: string[] };
 
 /**
  * Answer only from the knowledge base. If nothing relevant is found, abstain instead of
