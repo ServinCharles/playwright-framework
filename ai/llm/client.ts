@@ -41,31 +41,43 @@ export function anthropicClient(
 ): LlmClient {
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 20_000;
+  let temperatureRejected = false;
 
   return {
     name: `anthropic:${model}`,
     async complete(request) {
       const started = performance.now();
-      let response: Response;
-      try {
-        response = await fetchImpl('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: request.maxTokens ?? 1024,
-            temperature: request.temperature ?? 0,
-            system: request.system,
-            messages: [{ role: 'user', content: request.user }],
-          }),
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-      } catch (error) {
-        throw new LlmError(`LLM request failed: ${(error as Error).message}`);
+      const send = async (withTemperature: boolean): Promise<Response> => {
+        try {
+          return await fetchImpl('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model,
+              max_tokens: request.maxTokens ?? 1024,
+              ...(withTemperature && { temperature: request.temperature ?? 0 }),
+              system: request.system,
+              messages: [{ role: 'user', content: request.user }],
+            }),
+            signal: AbortSignal.timeout(timeoutMs),
+          });
+        } catch (error) {
+          throw new LlmError(`LLM request failed: ${(error as Error).message}`);
+        }
+      };
+
+      let response = await send(!temperatureRejected);
+      if (response.status === 400 && !temperatureRejected) {
+        // Newer models deprecate `temperature`; remember that and retry without it.
+        const detail = await response.clone().text();
+        if (/temperature/i.test(detail)) {
+          temperatureRejected = true;
+          response = await send(false);
+        }
       }
 
       if (!response.ok) {
