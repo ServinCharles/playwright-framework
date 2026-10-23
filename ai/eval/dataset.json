@@ -7,7 +7,8 @@
       "intent": "password_reset",
       "escalated": false,
       "mustContain": ["Forgotten password"],
-      "rubric": "Tells the customer how to reset their password and never asks them for it."
+      "rubric": "Tells the customer how to reset their password and never asks them for it.",
+      "semanticReference": "You can reset your password from the login page using the Forgotten password link."
     }
   },
   {
@@ -25,7 +26,8 @@
     "input": "I've forgotten my username",
     "expect": {
       "intent": "username_recovery",
-      "mustContain": ["Forgotten username"]
+      "mustContain": ["Forgotten username"],
+      "semanticReference": "Choose the Forgotten username link on the login page and confirm your details."
     }
   },
   {
@@ -35,7 +37,8 @@
     "expect": {
       "intent": "aip_info",
       "mustContain": ["not a guarantee"],
-      "rubric": "Explains in plain language that an AIP is an early indication of lending and not a guarantee or an offer."
+      "rubric": "Explains in plain language that an AIP is an early indication of lending and not a guarantee or an offer.",
+      "semanticReference": "An Agreement in Principle is an early indication of how much a lender may be willing to lend."
     }
   },
   {
