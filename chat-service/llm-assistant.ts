@@ -59,6 +59,8 @@ export function createLlmAssistant(llm: LlmClient): Responder {
     if (isAdviceQuestion(message))
       return {
         ...SAFE_FALLBACK,
+        reply:
+          "I can't give personal financial advice. A mortgage adviser can look at your circumstances, so I am passing you to one.",
         intent: 'financial_advice_refusal',
         trace: { ...trace, guard: 'personal_advice' },
       };
