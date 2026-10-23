@@ -11,7 +11,10 @@ const SAME: [string, string][] = [
     'Use the Forgotten password link on the login page to reset it',
     'Reset your password using the forgotten password link',
   ],
-  ['We cannot share your account details with anyone', 'Never share your account details with others'],
+  [
+    'We cannot share your account details with anyone',
+    'Never share your account details with others',
+  ],
   [
     'Your application reference is shown in the email we sent',
     'The application reference appears in your email',
@@ -19,7 +22,10 @@ const SAME: [string, string][] = [
 ];
 
 const DIFFERENT: [string, string][] = [
-  ['You can reset your password from the login page', 'Your mortgage offer expires after six months'],
+  [
+    'You can reset your password from the login page',
+    'Your mortgage offer expires after six months',
+  ],
   ['I cannot give personal financial advice', 'Here are the best savings accounts to open today'],
   ['Please call us to speak to an adviser', 'Forgotten password link on the login page'],
   ['We cannot share your account details', 'The weather in London is sunny today'],
@@ -67,7 +73,8 @@ test.describe('semantic check in the scorer', () => {
     category: 'functional',
     input: 'I forgot my password',
     expect: {
-      semanticReference: 'You can reset your password from the login page using the Forgotten password link.',
+      semanticReference:
+        'You can reset your password from the login page using the Forgotten password link.',
     },
   };
 
@@ -79,12 +86,18 @@ test.describe('semantic check in the scorer', () => {
   });
 
   test('a paraphrased answer passes the semantic check', () => {
-    const checks = scoreCase(testCase, reply('Reset it from the login page with the Forgotten password link.'));
+    const checks = scoreCase(
+      testCase,
+      reply('Reset it from the login page with the Forgotten password link.'),
+    );
     expect(checks.find((c) => c.name === 'semantically close to reference')?.passed).toBe(true);
   });
 
   test('an answer about something else fails the semantic check', () => {
-    const checks = scoreCase(testCase, reply('Our savings accounts pay a competitive rate this month.'));
+    const checks = scoreCase(
+      testCase,
+      reply('Our savings accounts pay a competitive rate this month.'),
+    );
     expect(checks.find((c) => c.name === 'semantically close to reference')?.passed).toBe(false);
   });
 
