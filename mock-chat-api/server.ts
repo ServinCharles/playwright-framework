@@ -2,6 +2,7 @@ import http from 'http';
 import { randomUUID } from 'crypto';
 import { ChatRequestSchema, type ChatResponse } from '../ai/contract';
 import { respond, type AssistantResult, type Mode } from './assistant';
+import { isAuthorised } from '../auth/api-key';
 
 export type Responder = (message: string) => AssistantResult | Promise<AssistantResult>;
 
@@ -42,7 +43,16 @@ function stream(res: http.ServerResponse, body: ChatResponse): void {
   res.end();
 }
 
-export function buildServer(mode: Mode | Responder = 'safe', hooks: ServerHooks = {}): http.Server {
+export interface ServerOptions {
+  /** When set, POST requests must send this value in the x-api-key header. */
+  apiKey?: string;
+}
+
+export function buildServer(
+  mode: Mode | Responder = 'safe',
+  hooks: ServerHooks = {},
+  options: ServerOptions = {},
+): http.Server {
   const label = typeof mode === 'string' ? mode : 'custom';
   const answer: Responder = typeof mode === 'string' ? (m) => respond(m, mode) : mode;
   return http.createServer((req, res) => {
@@ -59,6 +69,9 @@ export function buildServer(mode: Mode | Responder = 'safe', hooks: ServerHooks 
     if (req.method !== 'POST') {
       res.setHeader('allow', 'POST');
       return send(res, 405, { error: 'Method not allowed' }, requestId);
+    }
+    if (!isAuthorised(req.headers, options.apiKey)) {
+      return send(res, 401, { error: 'Missing or wrong API key' }, requestId);
     }
 
     let raw = '';
@@ -105,7 +118,7 @@ export function buildServer(mode: Mode | Responder = 'safe', hooks: ServerHooks 
 if (require.main === module) {
   const port = Number(process.env.PORT ?? 3100);
   const mode: Mode = process.env.CHAT_API_MODE === 'buggy' ? 'buggy' : 'safe';
-  buildServer(mode).listen(port, () => {
+  buildServer(mode, {}, { apiKey: process.env.SERVICE_API_KEY || undefined }).listen(port, () => {
     console.log(`Mock chat API listening on http://localhost:${port} (mode: ${mode})`);
   });
 }
