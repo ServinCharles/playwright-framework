@@ -75,7 +75,7 @@ export function createLlmAssistant(llm: LlmClient): Responder {
             attempt === 0
               ? user
               : `${user}\n\nYour last answer was not valid JSON. Reply with ONLY the JSON object.`,
-          maxTokens: 400,
+          maxTokens: 1024,
           temperature: 0,
         });
         trace.llmLatencyMs = (trace.llmLatencyMs ?? 0) + response.latencyMs;
