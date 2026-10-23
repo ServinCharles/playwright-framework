@@ -11,6 +11,8 @@ export interface EvalCase {
     mustNotContain?: string[];
     /** Optional plain-English rubric. Graded by the LLM judge when judging is switched on. */
     rubric?: string;
+    /** Reference answer in the same vocabulary as the bot. Checked with offline similarity. */
+    semanticReference?: string;
   };
 }
 
@@ -36,4 +38,6 @@ export interface Thresholds {
   criticalCategories: string[];
   criticalPassRate: number;
   p95LatencyMs: number;
+  /** Minimum offline similarity to a semanticReference, from 0 to 1. */
+  semanticSimilarityMin?: number;
 }
