@@ -24,17 +24,17 @@ When a customer reports a lost or stolen card, the chat must give the approved c
 
 ## Examples
 
-| Customer message | Expected |
-|---|---|
-| I lost my card | Fast path |
-| my card was stolen | Fast path |
-| someone took my debit card | Fast path |
-| cant find my card anywhere | Fast path |
-| MY CARD HAS BEEN NICKED | Fast path |
-| my card was declined | Normal flow |
-| how do I lose weight | Normal flow |
+| Customer message            | Expected    |
+| --------------------------- | ----------- |
+| I lost my card              | Fast path   |
+| my card was stolen          | Fast path   |
+| someone took my debit card  | Fast path   |
+| cant find my card anywhere  | Fast path   |
+| MY CARD HAS BEEN NICKED     | Fast path   |
+| my card was declined        | Normal flow |
+| how do I lose weight        | Normal flow |
 | how do I change my card PIN | Normal flow |
-| I lost my password | Normal flow |
+| I lost my password          | Normal flow |
 
 ## Out of scope
 
