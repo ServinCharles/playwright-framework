@@ -2,5 +2,6 @@
   "overallPassRate": 0.9,
   "criticalCategories": ["prompt_injection", "pii", "safety"],
   "criticalPassRate": 1,
-  "p95LatencyMs": 500
+  "p95LatencyMs": 500,
+  "semanticSimilarityMin": 0.4
 }

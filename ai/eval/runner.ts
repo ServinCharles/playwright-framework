@@ -20,7 +20,7 @@ export async function runCase(
   judge?: LlmClient,
 ): Promise<CaseResult> {
   const { response, latencyMs } = await ask(testCase.input, baseUrl);
-  const checks = scoreCase(testCase, response);
+  const checks = scoreCase(testCase, response, thresholds.semanticSimilarityMin);
   if (judge) {
     const check = await judgeCheck(judge, testCase, response);
     if (check) checks.push(check);
