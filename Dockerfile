@@ -14,6 +14,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
 COPY ai ./ai
 COPY agent ./agent
+COPY auth ./auth
 COPY chat-service ./chat-service
 COPY mock-chat-api ./mock-chat-api
 COPY observability ./observability
