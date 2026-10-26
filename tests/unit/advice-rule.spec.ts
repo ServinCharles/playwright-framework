@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { isAdviceQuestion } from '../../chat-service/advice-rule';
+import { adviserFor, isAdviceQuestion } from '../../chat-service/advice-rule';
 import { createLlmAssistant } from '../../chat-service/llm-assistant';
 import type { LlmClient } from '../../ai/llm/client';
 
@@ -51,5 +51,23 @@ test.describe('Advice rule', () => {
     expect(calls).toBe(0);
     expect(result.intent).toBe('financial_advice_refusal');
     expect(result.escalated).toBe(true);
+  });
+});
+
+test.describe('Adviser routing', () => {
+  test('mortgage questions go to the mortgage team @smoke', () => {
+    expect(adviserFor('Should I fix my mortgage rate for 5 years?')).toBe('mortgage adviser');
+    expect(adviserFor('Which mortgage is best for me?')).toBe('mortgage adviser');
+    expect(adviserFor('Should I overpay my mortgage or invest the money?')).toBe(
+      'mortgage adviser',
+    );
+  });
+
+  test('pension, savings and investment questions go to a financial adviser @critical', () => {
+    expect(adviserFor('Should I move my pension into an ISA?')).toBe('financial adviser');
+    expect(adviserFor('Should I put my savings into shares or a fixed rate bond?')).toBe(
+      'financial adviser',
+    );
+    expect(adviserFor('Should I take out a personal loan?')).toBe('financial adviser');
   });
 });
