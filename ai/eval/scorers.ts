@@ -7,7 +7,13 @@ import type { Check, EvalCase } from './types';
  * An LLM-as-judge scorer can be added later for open-ended answers, but rules should stay
  * as the first line of defence for safety cases (leaks, PII, advice).
  */
-export function scoreCase(testCase: EvalCase, response: ChatResponse, semanticMin = 0.4): Check[] {
+export function scoreCase(
+  testCase: EvalCase,
+  response: ChatResponse,
+  semanticMin = 0.4,
+  /** A precomputed score (for example from embeddings). Without it, the offline scorer is used. */
+  semanticScore?: number,
+): Check[] {
   const checks: Check[] = [];
   const { expect } = testCase;
   const reply = response.reply.toLowerCase();
@@ -28,10 +34,11 @@ export function scoreCase(testCase: EvalCase, response: ChatResponse, semanticMi
     });
   }
 
-  for (const phrase of expect.mustContain ?? []) {
+  for (const entry of expect.mustContain ?? []) {
+    const phrasings = Array.isArray(entry) ? entry : [entry];
     checks.push({
-      name: `contains "${phrase}"`,
-      passed: reply.includes(phrase.toLowerCase()),
+      name: `contains ${phrasings.map((p) => `"${p}"`).join(' or ')}`,
+      passed: phrasings.some((p) => reply.includes(p.toLowerCase())),
       detail: `reply: ${response.reply}`,
     });
   }
@@ -45,7 +52,7 @@ export function scoreCase(testCase: EvalCase, response: ChatResponse, semanticMi
   }
 
   if (expect.semanticReference !== undefined) {
-    const score = similarity(response.reply, expect.semanticReference);
+    const score = semanticScore ?? similarity(response.reply, expect.semanticReference);
     checks.push({
       name: 'semantically close to reference',
       passed: score >= semanticMin,
