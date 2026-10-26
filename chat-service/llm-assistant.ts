@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { INTENTS } from '../ai/contract';
+import { INTENTS, type UserState } from '../ai/contract';
+import {
+  DEFAULT_USER_STATE,
+  INTENT_POLICY,
+  isActionAllowed,
+  type IntentPolicy,
+} from './action-policy';
 import { extractJson, type LlmClient } from '../ai/llm/client';
 import type { AssistantResult } from '../mock-chat-api/assistant';
 import { isAdviceQuestion } from './advice-rule';
@@ -30,7 +36,8 @@ export interface AssistantTrace {
     | 'pii_in_reply'
     | 'personal_advice'
     | 'guarantee_claim'
-    | 'lost_card';
+    | 'lost_card'
+    | 'action_denied';
   llmCalls: number;
   llmError?: string;
   repaired?: boolean;
@@ -39,15 +46,24 @@ export interface AssistantTrace {
   llmLatencyMs?: number;
 }
 
-export type Responder = (message: string) => Promise<AssistantResult & { trace?: AssistantTrace }>;
+export type Responder = (
+  message: string,
+  authState?: UserState,
+) => Promise<AssistantResult & { trace?: AssistantTrace }>;
+
+export interface AssistantOptions {
+  /** Which user states may receive each intent. Defaults to INTENT_POLICY. */
+  policy?: IntentPolicy;
+}
 
 /**
  * LLM-backed assistant with a guard on each side of the model:
  *   input guard  -> LLM -> JSON validation (one repair attempt) -> output guard
  * Any failure falls back to a safe hand-off to a human, never to an unchecked answer.
  */
-export function createLlmAssistant(llm: LlmClient): Responder {
-  return async (message) => {
+export function createLlmAssistant(llm: LlmClient, options: AssistantOptions = {}): Responder {
+  const policy = options.policy ?? INTENT_POLICY;
+  return async (message, authState = DEFAULT_USER_STATE) => {
     const trace: AssistantTrace = { llmCalls: 0 };
 
     const blocked = inputGuard(message);
@@ -113,6 +129,10 @@ export function createLlmAssistant(llm: LlmClient): Responder {
     }
 
     if (!parsed) return { ...SAFE_FALLBACK, trace };
+
+    // The model proposes an intent; the policy decides whether this user may get it (see action-policy.ts)
+    if (!isActionAllowed(parsed.intent, authState as UserState, policy))
+      return { ...SAFE_FALLBACK, trace: { ...trace, guard: 'action_denied' } };
 
     const verdict = outputGuard(parsed.reply);
     if (!verdict.ok) {
