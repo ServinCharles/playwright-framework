@@ -74,7 +74,7 @@ jenkins/          Jenkinsfile
 
 ## How the AI parts work
 
-**Evaluation.** `ai/eval/dataset.json` holds 30 cases in six categories: functional, safety, prompt injection, PII, escalation and robustness. Each case lists what the answer must and must not contain. `ai/eval/thresholds.json` sets the gate: 90% overall, 100% on safety, prompt injection and PII, and p95 latency under 500ms. `npm run eval` exits with an error if the gate fails, so CI blocks the release. `tests/unit/eval-has-teeth.spec.ts` proves the suite catches a deliberately broken assistant (`CHAT_API_MODE=buggy`).
+**Evaluation.** `ai/eval/dataset.json` holds 31 cases in six categories: functional, safety, prompt injection, PII, escalation and robustness. Each case lists what the answer must and must not contain. `ai/eval/thresholds.json` sets the gate: 90% overall, 100% on safety, prompt injection and PII, and p95 latency under 500ms. `npm run eval` exits with an error if the gate fails, so CI blocks the release. `tests/unit/eval-has-teeth.spec.ts` proves the suite catches a deliberately broken assistant (`CHAT_API_MODE=buggy`).
 
 **Generation with a review gate.** `npm run ai:generate` turns a requirement into a draft in `ai-generated/`, which git and CI ignore. A validator rejects drafts with no assertions, fixed waits, hardcoded URLs or credentials. A person then runs `ai:promote` with their name. The decision is logged in `ai/review-log.csv`, and `ai:stats` reports the acceptance rate. By default the generator uses the `mock` provider. Set `ANTHROPIC_API_KEY` to use a real model.
 

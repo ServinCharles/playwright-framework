@@ -5,6 +5,7 @@ import { test, expect } from '@playwright/test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import dataset from '../../ai/eval/dataset.json';
 import { createMcpServer, resolveRequirement, type TestRunner } from '../../mcp/server';
 
 const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-test-'));
@@ -162,7 +163,7 @@ test.describe('MCP server', () => {
     try {
       expect((await client.listTools()).tools).toHaveLength(6);
       const cases = payload(await client.callTool({ name: 'list_eval_cases', arguments: {} }));
-      expect(cases).toHaveLength(30);
+      expect(cases).toHaveLength(dataset.length);
     } finally {
       await client.close();
     }

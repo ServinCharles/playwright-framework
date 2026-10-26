@@ -67,7 +67,8 @@ export function buildServer(
   options: ServerOptions = {},
 ): http.Server {
   const label = typeof mode === 'string' ? mode : 'custom';
-  const answer: Responder = typeof mode === 'string' ? (m) => respond(m, mode) : mode;
+  const answer: Responder =
+    typeof mode === 'string' ? (m, authState) => respond(m, mode, authState) : mode;
   return http.createServer((req, res) => {
     const requestId = randomUUID();
 
