@@ -1,10 +1,13 @@
 import http from 'http';
 import { randomUUID } from 'crypto';
-import { ChatRequestSchema, type ChatResponse } from '../ai/contract';
+import { ChatRequestSchema, type ChatResponse, type UserState } from '../ai/contract';
 import { respond, type AssistantResult, type Mode } from './assistant';
 import { isAuthorised } from '../auth/api-key';
 
-export type Responder = (message: string) => AssistantResult | Promise<AssistantResult>;
+export type Responder = (
+  message: string,
+  authState?: UserState,
+) => AssistantResult | Promise<AssistantResult>;
 
 const MAX_BODY_BYTES = 10_000;
 
@@ -100,7 +103,7 @@ export function buildServer(
           requestId,
         );
       }
-      Promise.resolve(answer(request.data.message))
+      Promise.resolve(answer(request.data.message, request.data.authState))
         .then((result) => {
           const { reply, intent, escalated } = result;
           const body: ChatResponse = { reply, intent, escalated, requestId };
