@@ -19,10 +19,12 @@ import { runAll, summarise, toMarkdown } from './runner';
 
 /** Uses CHAT_API_URL when it points to another machine, otherwise starts the local mock on a free port. */
 const LIVE = process.env.EVAL_LIVE === '1';
+// Live runs default to the chat service port (3101), not the mock default
+const TARGET = LIVE ? (process.env.CHAT_API_URL ?? 'http://localhost:3101') : env.chatApiUrl;
 
 async function withTarget<T>(run: (baseUrl: string) => Promise<T>): Promise<T> {
   // A live run must hit the real service even when it runs on localhost
-  if (LIVE || !isLocalUrl(env.chatApiUrl)) return run(env.chatApiUrl);
+  if (LIVE || !isLocalUrl(TARGET)) return run(TARGET);
 
   const mode = process.env.CHAT_API_MODE === 'buggy' ? 'buggy' : 'safe';
   const server = buildServer(mode);
@@ -48,7 +50,6 @@ async function main(): Promise<void> {
       throw new Error('The judge needs ANTHROPIC_API_KEY. The judge must be a real model.');
     console.log(`LLM judge on: ${judge.name}`);
   }
-  if (LIVE && !process.env.CHAT_API_URL) throw new Error('EVAL_LIVE=1 needs CHAT_API_URL set.');
   // Live runs repeat each case to show how much the real model varies
   const runs = Number(process.env.EVAL_RUNS ?? (LIVE ? 3 : 1));
   const results = await withTarget(async (baseUrl) => {
@@ -89,7 +90,7 @@ main().catch((error) => {
   const unreachable = (error as { cause?: { code?: string } }).cause?.code === 'ECONNREFUSED';
   console.error(
     unreachable
-      ? `Cannot reach the chat API at ${env.chatApiUrl}. Is it running?`
+      ? `Cannot reach the chat API at ${TARGET}. Is it running?`
       : (error as Error).message,
   );
   process.exit(1);
