@@ -29,10 +29,21 @@ test.describe('Intent policy table', () => {
     }
   });
 
-  test('today every intent is general information, so both states may receive it', () => {
+  test('every intent for every user state matches the expected table @critical', () => {
+    const expected: Record<string, readonly string[]> = {};
+    for (const intent of INTENTS)
+      expected[intent] =
+        intent === 'account_details' ? ['post_login'] : ['pre_login', 'post_login'];
     for (const intent of INTENTS)
       for (const state of USER_STATES)
-        expect(isActionAllowed(intent, state), `${intent} for ${state}`).toBe(true);
+        expect(isActionAllowed(intent, state), `${intent} for ${state}`).toBe(
+          expected[intent].includes(state),
+        );
+  });
+
+  test('account details are denied before login and allowed after @critical', () => {
+    expect(isActionAllowed('account_details', 'pre_login')).toBe(false);
+    expect(isActionAllowed('account_details', 'post_login')).toBe(true);
   });
 
   test('an intent restricted to post_login is denied for pre_login @critical', () => {
@@ -119,5 +130,31 @@ test.describe('Chat request error message', () => {
     expect(requestErrorMessage(validationIssues(bad))).toBe(
       'message must be a non-empty string up to 2000 characters',
     );
+  });
+});
+
+test.describe('Account details before login @critical', () => {
+  test('a pre-login balance question gets the safe reply, is escalated, and is never answered', async () => {
+    const message = 'What is my account balance?';
+    const out = await createLlmAssistant(proposing('account_details'))(message, 'pre_login');
+    expect(out.intent).toBe('fallback');
+    expect(out.escalated).toBe(true);
+    expect(out.reply).not.toMatch(/£|balance is/i);
+    expect(out.trace?.guard).toBe('action_denied');
+  });
+
+  test('the denial trace records the guard but no customer text', async () => {
+    const message = 'What is my account balance?';
+    const out = await createLlmAssistant(proposing('account_details'))(message, 'pre_login');
+    expect(JSON.stringify(out.trace)).not.toContain('balance');
+  });
+
+  test('a signed-in customer may ask for account details', async () => {
+    const out = await createLlmAssistant(proposing('account_details'))(
+      'What is my account balance?',
+      'post_login',
+    );
+    expect(out.intent).toBe('account_details');
+    expect(out.trace?.guard).toBeUndefined();
   });
 });

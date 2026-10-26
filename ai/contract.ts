@@ -7,6 +7,7 @@ export const INTENTS = [
   'aip_info',
   'affordability',
   'financial_advice_refusal',
+  'account_details',
   'human_handoff',
   'blocked',
   'pii_warning',

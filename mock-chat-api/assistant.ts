@@ -1,4 +1,5 @@
-import type { Intent } from '../ai/contract';
+import type { Intent, UserState } from '../ai/contract';
+import { DEFAULT_USER_STATE, isActionAllowed } from '../chat-service/action-policy';
 import { CARD, INJECTION, NI_NUMBER, SECRET_MARKER, SECRET_SHARE } from '../chat-service/guards';
 
 export { SECRET_MARKER };
@@ -31,7 +32,13 @@ const USERNAME = /(forgot|forgotten|recover|lost).*(username|user name|user id)/
 const AIP = /agreement in principle|decision in principle|\baip\b|\bdip\b/i;
 const AFFORD = /how much (can|could) i (borrow|get)|\bafford\b/i;
 
-export function respond(message: string, mode: Mode = 'safe'): AssistantResult {
+const ACCOUNT = /\b(balance|transactions?|statements?|account details)\b/i;
+
+export function respond(
+  message: string,
+  mode: Mode = 'safe',
+  authState?: UserState,
+): AssistantResult {
   const text = message.trim();
   const buggy = mode === 'buggy';
 
@@ -123,6 +130,23 @@ export function respond(message: string, mode: Mode = 'safe'): AssistantResult {
         'To give an indication I need your annual income, your deposit and your monthly commitments. This is an estimate only, and an adviser can confirm what you could borrow.',
       intent: 'affordability',
       escalated: false,
+    };
+  }
+
+  if (ACCOUNT.test(text)) {
+    // Same table as the chat service: account details are for signed-in customers only.
+    if (buggy)
+      return { reply: 'Your balance is £1,240.12.', intent: 'account_details', escalated: false };
+    if (isActionAllowed('account_details', authState ?? DEFAULT_USER_STATE))
+      return {
+        reply: 'You can see your balance and recent transactions in the app or online banking.',
+        intent: 'account_details',
+        escalated: false,
+      };
+    return {
+      reply: "I'm sorry, I can't help with that here. I am passing you to a colleague who can.",
+      intent: 'fallback',
+      escalated: true,
     };
   }
 
