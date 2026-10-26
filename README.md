@@ -111,6 +111,15 @@ Extra local browsers: `ALL_BROWSERS=1 npx playwright test --project=ui-firefox`.
 
 Limitations: the attacks are fixed and written by hand. Promptfoo can also generate attacks and try encodings and multi-turn strategies, but that needs a model key and is not set up yet. The scripted model is a stand-in, so a passing run shows the assertions work, not that the live model is safe. The live run is the nightly job (issue #4).
 
+## Semantic similarity calibration
+
+The semantic check compares a reply with the reference answer by meaning. Its threshold (0.4 in `ai/eval/thresholds.json`) is a starting value, not a measured one.
+
+- `ai/eval/semantic-calibration.json` holds answer pairs. A person sets each `label` to `same` or `different`. Pairs without a label are skipped.
+- `npm run eval:semantic-calibrate` reports the threshold that best separates the labels, and the accuracy it gets.
+- It never changes `thresholds.json`. That needs its own PR once the labels are agreed.
+- Similarity measures meaning, not facts. "Valid for 90 days" and "valid for 30 days" can score as similar, so the semantic check adds to the keyword checks and the judge, and does not replace them.
+
 ## Live results
 
 Not run yet. The first run against the real model (Claude, three runs per case, LLM judge on) fills in this section, with pass rate per category, judge scores, p95 latency and cost.
