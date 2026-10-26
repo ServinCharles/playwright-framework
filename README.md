@@ -111,6 +111,14 @@ Extra local browsers: `ALL_BROWSERS=1 npx playwright test --project=ui-firefox`.
 
 Limitations: the attacks are fixed and written by hand. Promptfoo can also generate attacks and try encodings and multi-turn strategies, but that needs a model key and is not set up yet. The scripted model is a stand-in, so a passing run shows the assertions work, not that the live model is safe. The live run is the nightly job (issue #4).
 
+## Live results
+
+Not run yet. The first run against the real model (Claude, three runs per case, LLM judge on) fills in this section, with pass rate per category, judge scores, p95 latency and cost.
+
+- Run it: `npm run eval:live` with `ANTHROPIC_API_KEY` and `CHAT_API_URL` set.
+- Limits for live runs: p95 latency under 5 seconds (`ai/eval/thresholds.live.json`). The mock keeps 500 ms (`ai/eval/thresholds.json`).
+- The nightly `live-eval` workflow runs the same thing. It needs the `ANTHROPIC_API_KEY` repository secret and does not run on pull requests.
+
 ## Honest limitations
 
 - The default chat API is a rule-based mock, and the LLM service, agent and judge are tested with scripted models. Nothing has been run against a live LLM yet. Set `ANTHROPIC_API_KEY` and point `CHAT_API_URL` at `npm run chat-service` to find out how a real model behaves.

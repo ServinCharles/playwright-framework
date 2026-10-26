@@ -1,0 +1,51 @@
+name: Live eval
+
+# Runs the eval against the real model. Nightly and on demand only, so pull requests
+# never spend money or need the key. The quality gate (live thresholds) fails the run.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Eval against the real model
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: claude-haiku-5-5
+      JUDGE_MODEL: claude-sonnet-5-5
+      CHAT_API_URL: http://localhost:3101
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the key is set
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::The ANTHROPIC_API_KEY repository secret is not set."
+            exit 1
+          fi
+      - name: Start the chat service with the real model
+        run: |
+          npm run chat-service > chat.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs localhost:3101/health && break; sleep 1; done
+      - name: Eval against the real model (3 runs per case)
+        run: npm run eval:live
+      - name: Chat service log
+        if: failure()
+        run: tail -n 100 chat.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-eval-report
+          path: reports/eval/
+          if-no-files-found: ignore
