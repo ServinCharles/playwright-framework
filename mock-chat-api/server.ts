@@ -1,6 +1,6 @@
 import http from 'http';
 import { randomUUID } from 'crypto';
-import { ChatRequestSchema, type ChatResponse, type UserState } from '../ai/contract';
+import { ChatRequestSchema, USER_STATES, type ChatResponse, type UserState } from '../ai/contract';
 import { respond, type AssistantResult, type Mode } from './assistant';
 import { isAuthorised } from '../auth/api-key';
 
@@ -51,6 +51,16 @@ export interface ServerOptions {
   apiKey?: string;
 }
 
+/**
+ * The 400 message for a bad chat request. Names authState when that is the field at fault,
+ * so a caller is not told about the message when it was the authState that was wrong.
+ */
+export function requestErrorMessage(issues: { path: PropertyKey[] }[]): string {
+  if (issues.some((issue) => issue.path[0] === 'authState'))
+    return `authState must be one of: ${USER_STATES.join(', ')}`;
+  return 'message must be a non-empty string up to 2000 characters';
+}
+
 export function buildServer(
   mode: Mode | Responder = 'safe',
   hooks: ServerHooks = {},
@@ -96,12 +106,7 @@ export function buildServer(
       }
       const request = ChatRequestSchema.safeParse(parsed);
       if (!request.success) {
-        return send(
-          res,
-          400,
-          { error: 'message must be a non-empty string up to 2000 characters' },
-          requestId,
-        );
+        return send(res, 400, { error: requestErrorMessage(request.error.issues) }, requestId);
       }
       Promise.resolve(answer(request.data.message, request.data.authState))
         .then((result) => {

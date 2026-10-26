@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { INTENTS, ChatRequestSchema, USER_STATES } from '../../ai/contract';
+import { requestErrorMessage } from '../../mock-chat-api/server';
 import { scriptedLlm } from '../../ai/llm/client';
 import { createLlmAssistant } from '../../chat-service/llm-assistant';
 import {
@@ -95,5 +96,25 @@ test.describe('Gate inside the assistant @critical', () => {
       'pre_login',
     );
     expect(out.trace?.llmCalls).toBe(1);
+  });
+});
+
+test.describe('Chat request error message', () => {
+  test('a bad authState is named in the error @smoke', () => {
+    const bad = ChatRequestSchema.safeParse({ message: 'hi', authState: 'admin' });
+    expect(bad.success).toBe(false);
+    if (bad.success) return;
+    expect(requestErrorMessage(bad.error.issues)).toBe(
+      'authState must be one of: pre_login, post_login',
+    );
+  });
+
+  test('a bad message keeps the message error @smoke', () => {
+    const bad = ChatRequestSchema.safeParse({ message: '' });
+    expect(bad.success).toBe(false);
+    if (bad.success) return;
+    expect(requestErrorMessage(bad.error.issues)).toBe(
+      'message must be a non-empty string up to 2000 characters',
+    );
   });
 });
