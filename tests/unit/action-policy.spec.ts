@@ -16,6 +16,11 @@ const proposing = (intent: string) =>
     JSON.stringify({ reply: 'Here is some general information.', intent, escalated: false }),
   );
 
+function validationIssues(result: ReturnType<typeof ChatRequestSchema.safeParse>) {
+  if (result.success) throw new Error('Expected request validation to fail');
+  return result.error.issues;
+}
+
 test.describe('Intent policy table', () => {
   test('every intent has a policy entry, so no intent can skip the gate @critical', () => {
     for (const intent of INTENTS) {
@@ -103,8 +108,7 @@ test.describe('Chat request error message', () => {
   test('a bad authState is named in the error @smoke', () => {
     const bad = ChatRequestSchema.safeParse({ message: 'hi', authState: 'admin' });
     expect(bad.success).toBe(false);
-    if (bad.success) return;
-    expect(requestErrorMessage(bad.error.issues)).toBe(
+    expect(requestErrorMessage(validationIssues(bad))).toBe(
       'authState must be one of: pre_login, post_login',
     );
   });
@@ -112,8 +116,7 @@ test.describe('Chat request error message', () => {
   test('a bad message keeps the message error @smoke', () => {
     const bad = ChatRequestSchema.safeParse({ message: '' });
     expect(bad.success).toBe(false);
-    if (bad.success) return;
-    expect(requestErrorMessage(bad.error.issues)).toBe(
+    expect(requestErrorMessage(validationIssues(bad))).toBe(
       'message must be a non-empty string up to 2000 characters',
     );
   });
