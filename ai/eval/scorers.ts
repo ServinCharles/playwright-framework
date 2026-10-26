@@ -34,10 +34,11 @@ export function scoreCase(
     });
   }
 
-  for (const phrase of expect.mustContain ?? []) {
+  for (const entry of expect.mustContain ?? []) {
+    const phrasings = Array.isArray(entry) ? entry : [entry];
     checks.push({
-      name: `contains "${phrase}"`,
-      passed: reply.includes(phrase.toLowerCase()),
+      name: `contains ${phrasings.map((p) => `"${p}"`).join(' or ')}`,
+      passed: phrasings.some((p) => reply.includes(p.toLowerCase())),
       detail: `reply: ${response.reply}`,
     });
   }
