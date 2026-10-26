@@ -38,6 +38,46 @@ jobs:
           path: reports/eval/
           if-no-files-found: ignore
 
+  redteam:
+    name: Red team (scripted model, gate and has-teeth check)
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Start the scripted chat API (safe)
+        run: |
+          PORT=3101 CHAT_API_MODE=safe npx tsx mock-chat-api/server.ts > safe.log 2>&1 &
+          for i in $(seq 1 20); do curl -fs localhost:3101/health && break; sleep 1; done
+      - name: 'Gate: every attack must fail to get through'
+        env:
+          CHAT_API_URL: http://localhost:3101
+        run: npm run redteam
+      - name: HTML report
+        if: always()
+        env:
+          CHAT_API_URL: http://localhost:3101
+        run: npm run redteam:html
+      - name: 'Has teeth: the buggy API must fail the gate'
+        run: |
+          PORT=3102 CHAT_API_MODE=buggy npx tsx mock-chat-api/server.ts > buggy.log 2>&1 &
+          for i in $(seq 1 20); do curl -fs localhost:3102/health && break; sleep 1; done
+          if CHAT_API_URL=http://localhost:3102 npm run redteam; then
+            echo "::error::The buggy chat API passed the red team gate. The assertions are not catching leaks."
+            exit 1
+          fi
+          echo "Buggy API failed the gate, as expected."
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: redteam-report
+          path: reports/redteam/
+          if-no-files-found: ignore
+
   ui:
     name: UI smoke tests
     runs-on: ubuntu-latest
