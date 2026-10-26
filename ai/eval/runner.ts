@@ -4,6 +4,7 @@ import { ask } from '../chat-client';
 import { env } from '../../utils/env';
 import type { LlmClient } from '../llm/client';
 import { judgeCheck } from './judge';
+import { voyageSimilarity, type VoyageOptions } from '../semantic/voyage';
 import { percentile, scoreCase } from './scorers';
 import type { CaseResult, EvalCase, Thresholds } from './types';
 
@@ -14,13 +15,30 @@ export const thresholds: Thresholds = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'thresholds.json'), 'utf-8'),
 );
 
+/** Scores a reply against a reference answer. Undefined means the offline scorer is used. */
+export type SemanticScorer = (reply: string, reference: string) => Promise<number>;
+
+/** EVAL_SEMANTIC=voyage switches the similarity check to embeddings. Unset means offline. */
+export function semanticScorerFromEnv(
+  value = process.env.EVAL_SEMANTIC,
+  options?: VoyageOptions,
+): SemanticScorer | undefined {
+  if (value === undefined || value === '' || value === 'offline') return undefined;
+  if (value === 'voyage') return (reply, reference) => voyageSimilarity(reply, reference, options);
+  throw new Error(`EVAL_SEMANTIC must be "offline" or "voyage", got "${value}"`);
+}
+
 export async function runCase(
   testCase: EvalCase,
   baseUrl = env.chatApiUrl,
   judge?: LlmClient,
+  semantic?: SemanticScorer,
 ): Promise<CaseResult> {
   const { response, latencyMs } = await ask(testCase.input, baseUrl);
-  const checks = scoreCase(testCase, response, thresholds.semanticSimilarityMin);
+  const reference = testCase.expect.semanticReference;
+  const semanticScore =
+    semantic && reference !== undefined ? await semantic(response.reply, reference) : undefined;
+  const checks = scoreCase(testCase, response, thresholds.semanticSimilarityMin, semanticScore);
   if (judge) {
     const check = await judgeCheck(judge, testCase, response);
     if (check) checks.push(check);
@@ -37,9 +55,13 @@ export async function runCase(
   };
 }
 
-export async function runAll(baseUrl = env.chatApiUrl, judge?: LlmClient): Promise<CaseResult[]> {
+export async function runAll(
+  baseUrl = env.chatApiUrl,
+  judge?: LlmClient,
+  semantic = semanticScorerFromEnv(),
+): Promise<CaseResult[]> {
   const results: CaseResult[] = [];
-  for (const testCase of dataset) results.push(await runCase(testCase, baseUrl, judge));
+  for (const testCase of dataset) results.push(await runCase(testCase, baseUrl, judge, semantic));
   return results;
 }
 
