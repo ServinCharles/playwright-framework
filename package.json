@@ -18,6 +18,7 @@
     "test:ai-eval": "playwright test --project=ai-eval",
     "chat-api": "tsx mock-chat-api/server.ts",
     "eval": "tsx ai/eval/run-eval.ts",
+    "eval:live": "EVAL_LIVE=1 JUDGE=1 tsx ai/eval/run-eval.ts",
     "redteam": "PROMPTFOO_DISABLE_TELEMETRY=1 promptfoo eval -c promptfooconfig.yaml --no-cache -o reports/redteam/results.json",
     "ai:generate": "tsx ai/generator/cli.ts",
     "ai:promote": "tsx ai/review/promote.ts",
