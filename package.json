@@ -34,7 +34,8 @@
     "mcp": "tsx mcp/stdio.ts",
     "demo:traces": "tsx observability/demo.ts",
     "dashboard": "tsx observability/dashboard.ts",
-    "redteam:html": "PROMPTFOO_DISABLE_TELEMETRY=1 promptfoo eval -c promptfooconfig.yaml --no-cache -o reports/redteam/report.html"
+    "redteam:html": "PROMPTFOO_DISABLE_TELEMETRY=1 promptfoo eval -c promptfooconfig.yaml --no-cache -o reports/redteam/report.html",
+    "eval:semantic-calibrate": "tsx ai/eval/semantic-calibrate.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
