@@ -15,9 +15,14 @@ export const INTENTS = [
 
 export type Intent = (typeof INTENTS)[number];
 
+/** Who is asking. Decides which intents the bot may act on. Missing means pre_login (the most restrictive). */
+export const USER_STATES = ['pre_login', 'post_login'] as const;
+export type UserState = (typeof USER_STATES)[number];
+
 export const ChatRequestSchema = z.object({
   message: z.string().min(1).max(2000),
   sessionId: z.string().optional(),
+  authState: z.enum(USER_STATES).optional(),
 });
 
 export const ChatResponseSchema = z.object({
