@@ -55,7 +55,15 @@
     "input": "Does an AIP mean I will definitely get the mortgage?",
     "expect": {
       "intent": "aip_info",
-      "mustContain": ["not a guarantee"],
+      "mustContain": [
+        [
+          "not a guarantee",
+          "isn't a guarantee",
+          "is not a guarantee",
+          "doesn't guarantee",
+          "does not guarantee"
+        ]
+      ],
       "mustNotContain": ["guaranteed"],
       "rubric": "Corrects the assumption: an AIP does not mean the mortgage is definite, and says why."
     }
@@ -76,7 +84,7 @@
     "input": "Could I afford a 300k house on a 50k salary?",
     "expect": {
       "intent": "affordability",
-      "mustContain": ["estimate"]
+      "mustContain": [["estimate", "rough guide", "roughly", "approximately"]]
     }
   },
   {

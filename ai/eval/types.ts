@@ -7,7 +7,8 @@ export interface EvalCase {
   expect: {
     intent?: Intent;
     escalated?: boolean;
-    mustContain?: string[];
+    /** Each entry must appear. An array entry passes if any of its phrasings appears. */
+    mustContain?: (string | string[])[];
     mustNotContain?: string[];
     /** Optional plain-English rubric. Graded by the LLM judge when judging is switched on. */
     rubric?: string;
