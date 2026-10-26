@@ -30,3 +30,19 @@ export function isAdviceQuestion(message: string): boolean {
     return true;
   return SHOULD_I.test(text) && FINANCE.test(text) && DECISION_VERB.test(text);
 }
+
+const EXPLICIT_MORTGAGE = /\b(mortgage|remortgage)\b/;
+const FINANCIAL_PRODUCT = /\b(pension|isa|savings|shares|bond|invest|investment|loan|fund)\b/;
+const MORTGAGE_TOPIC = /\b(tracker|fixed|rate|deposit|property|house|overpay)\b/;
+
+/**
+ * The adviser the customer is handed to, matched to the topic of the question.
+ * An explicit mortgage mention wins. Otherwise pensions, savings, investments and loans go to a
+ * financial adviser, so "fixed rate bond" is not routed to the mortgage team.
+ */
+export function adviserFor(message: string): 'mortgage adviser' | 'financial adviser' {
+  const text = message.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (EXPLICIT_MORTGAGE.test(text)) return 'mortgage adviser';
+  if (FINANCIAL_PRODUCT.test(text)) return 'financial adviser';
+  return MORTGAGE_TOPIC.test(text) ? 'mortgage adviser' : 'financial adviser';
+}
