@@ -11,8 +11,10 @@ import type { CaseResult, EvalCase, Thresholds } from './types';
 export const dataset: EvalCase[] = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'dataset.json'), 'utf-8'),
 );
+/** Live runs use a looser latency limit (real models take 1 to 3 seconds). The mock keeps 500ms. */
+const thresholdFile = process.env.EVAL_LIVE === '1' ? 'thresholds.live.json' : 'thresholds.json';
 export const thresholds: Thresholds = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'thresholds.json'), 'utf-8'),
+  fs.readFileSync(path.join(__dirname, thresholdFile), 'utf-8'),
 );
 
 /** Scores a reply against a reference answer. Undefined means the offline scorer is used. */

@@ -6,6 +6,7 @@
  *   CHAT_API_URL=https://... npm run eval # evaluates a real service
  *   CHAT_API_MODE=buggy npm run eval      # shows the gate failing
  *   JUDGE=1 npm run eval                  # also grade rubric cases with an LLM judge
+ *   EVAL_LIVE=1 npm run eval:live         # real chat service on CHAT_API_URL, 3 runs per case
  */
 import fs from 'fs';
 import path from 'path';
@@ -13,12 +14,17 @@ import type { AddressInfo } from 'net';
 import { buildServer } from '../../mock-chat-api/server';
 import { env, isLocalUrl } from '../../utils/env';
 import type { LlmClient } from '../llm/client';
-import { createLlmClient } from '../llm/factory';
+import { anthropicClient } from '../llm/client';
 import { runAll, summarise, toMarkdown } from './runner';
 
 /** Uses CHAT_API_URL when it points to another machine, otherwise starts the local mock on a free port. */
+const LIVE = process.env.EVAL_LIVE === '1';
+// Live runs default to the chat service port (3101), not the mock default
+const TARGET = LIVE ? (process.env.CHAT_API_URL ?? 'http://localhost:3101') : env.chatApiUrl;
+
 async function withTarget<T>(run: (baseUrl: string) => Promise<T>): Promise<T> {
-  if (!isLocalUrl(env.chatApiUrl)) return run(env.chatApiUrl);
+  // A live run must hit the real service even when it runs on localhost
+  if (LIVE || !isLocalUrl(TARGET)) return run(TARGET);
 
   const mode = process.env.CHAT_API_MODE === 'buggy' ? 'buggy' : 'safe';
   const server = buildServer(mode);
@@ -35,12 +41,22 @@ async function withTarget<T>(run: (baseUrl: string) => Promise<T>): Promise<T> {
 async function main(): Promise<void> {
   // JUDGE=1 grades cases that have a rubric with a real LLM (needs ANTHROPIC_API_KEY)
   let judge: LlmClient | undefined;
-  if (process.env.JUDGE === '1') {
-    judge = createLlmClient();
-    if (!judge) throw new Error('JUDGE=1 needs ANTHROPIC_API_KEY. The judge must be a real model.');
+  if (process.env.JUDGE === '1' || LIVE) {
+    // The judge can be a stronger model than the bot (JUDGE_MODEL)
+    judge = env.anthropicApiKey
+      ? anthropicClient(env.anthropicApiKey, process.env.JUDGE_MODEL ?? env.anthropicModel)
+      : undefined;
+    if (!judge)
+      throw new Error('The judge needs ANTHROPIC_API_KEY. The judge must be a real model.');
     console.log(`LLM judge on: ${judge.name}`);
   }
-  const results = await withTarget((baseUrl) => runAll(baseUrl, judge));
+  // Live runs repeat each case to show how much the real model varies
+  const runs = Number(process.env.EVAL_RUNS ?? (LIVE ? 3 : 1));
+  const results = await withTarget(async (baseUrl) => {
+    const all = [];
+    for (let i = 0; i < runs; i++) all.push(...(await runAll(baseUrl, judge)));
+    return all;
+  });
   const summary = summarise(results);
 
   const outDir = path.resolve(__dirname, '../../reports/eval');
@@ -74,7 +90,7 @@ main().catch((error) => {
   const unreachable = (error as { cause?: { code?: string } }).cause?.code === 'ECONNREFUSED';
   console.error(
     unreachable
-      ? `Cannot reach the chat API at ${env.chatApiUrl}. Is it running?`
+      ? `Cannot reach the chat API at ${TARGET}. Is it running?`
       : (error as Error).message,
   );
   process.exit(1);

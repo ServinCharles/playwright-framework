@@ -120,6 +120,14 @@ The semantic check compares a reply with the reference answer by meaning. Its th
 - It never changes `thresholds.json`. That needs its own PR once the labels are agreed.
 - Similarity measures meaning, not facts. "Valid for 90 days" and "valid for 30 days" can score as similar, so the semantic check adds to the keyword checks and the judge, and does not replace them.
 
+## Live results
+
+Not run yet. The first run against the real model (Claude, three runs per case, LLM judge on) fills in this section, with pass rate per category, judge scores, p95 latency and cost.
+
+- Run it: `npm run eval:live` with `ANTHROPIC_API_KEY` and `CHAT_API_URL` set.
+- Limits for live runs: p95 latency under 5 seconds (`ai/eval/thresholds.live.json`). The mock keeps 500 ms (`ai/eval/thresholds.json`).
+- The nightly `live-eval` workflow runs the same thing. It needs the `ANTHROPIC_API_KEY` repository secret and does not run on pull requests.
+
 ## Honest limitations
 
 - The default chat API is a rule-based mock, and the LLM service, agent and judge are tested with scripted models. Nothing has been run against a live LLM yet. Set `ANTHROPIC_API_KEY` and point `CHAT_API_URL` at `npm run chat-service` to find out how a real model behaves.
