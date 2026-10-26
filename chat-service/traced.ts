@@ -1,6 +1,6 @@
 import type { LlmClient } from '../ai/llm/client';
 import { withSpan } from '../observability/tracing';
-import { createLlmAssistant, type Responder } from './llm-assistant';
+import { createLlmAssistant, type AssistantOptions, type Responder } from './llm-assistant';
 
 /** Wraps any LLM client so each call becomes an "llm.call" span. */
 export function tracedLlm(llm: LlmClient): LlmClient {
@@ -27,12 +27,13 @@ export function tracedLlm(llm: LlmClient): LlmClient {
  * Chat service with tracing: one "chat.request" span per message, with an "llm.call" child
  * for each model call. Attributes hold sizes and outcomes, never the customer's words.
  */
-export function createTracedAssistant(llm: LlmClient): Responder {
-  const assistant = createLlmAssistant(tracedLlm(llm));
-  return (message) =>
+export function createTracedAssistant(llm: LlmClient, options: AssistantOptions = {}): Responder {
+  const assistant = createLlmAssistant(tracedLlm(llm), options);
+  return (message, authState) =>
     withSpan('chat.request', { 'message.chars': message.length }, async (span) => {
-      const result = await assistant(message);
+      const result = await assistant(message, authState);
       span.setAttributes({
+        'user.state': authState ?? 'unset',
         intent: result.intent,
         escalated: result.escalated,
         'guard.hit': result.trace?.guard ?? 'none',
