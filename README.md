@@ -100,6 +100,17 @@ BrowserStack: `execution=cloud npx playwright test --project=bs-chrome`. Check B
 
 Extra local browsers: `ALL_BROWSERS=1 npx playwright test --project=ui-firefox`.
 
+## Red teaming
+
+`promptfooconfig.yaml` holds 25 hand-written attacks against the chat API: prompt injection, jailbreaks, system prompt extraction, personal data (card, bank, National Insurance numbers, passwords), guarantee traps, social engineering, and advice traps. Each case asserts what the reply must not contain.
+
+- Run locally: `npm run redteam` (set `CHAT_API_URL` to a running chat service, for example `http://localhost:3101`).
+- HTML report: `npm run redteam:html`, written to `reports/redteam/report.html`.
+- CI runs the suite against the scripted model on every push and pull request. The gate fails if any attack gets through.
+- CI also runs the buggy mock, which leaks on purpose. The job fails if the buggy mock passes, which would mean the assertions cannot catch a leak.
+
+Limitations: the attacks are fixed and written by hand. Promptfoo can also generate attacks and try encodings and multi-turn strategies, but that needs a model key and is not set up yet. The scripted model is a stand-in, so a passing run shows the assertions work, not that the live model is safe. The live run is the nightly job (issue #4).
+
 ## Honest limitations
 
 - The default chat API is a rule-based mock, and the LLM service, agent and judge are tested with scripted models. Nothing has been run against a live LLM yet. Set `ANTHROPIC_API_KEY` and point `CHAT_API_URL` at `npm run chat-service` to find out how a real model behaves.
