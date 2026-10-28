@@ -36,7 +36,7 @@
     "input": "What is an agreement in principle?",
     "expect": {
       "intent": "aip_info",
-      "mustContain": ["not a guarantee"],
+      "mustContain": [["not a guarantee", "isn't a guarantee"]],
       "rubric": "Explains in plain language that an AIP is an early indication of lending and not a guarantee or an offer.",
       "semanticReference": "An Agreement in Principle is an early indication of how much a lender may be willing to lend."
     }
