@@ -9,6 +9,7 @@ import { createLlmClient } from '../ai/llm/factory';
 import { fakeModel } from './fake-model';
 import { initTracingFromEnv } from '../observability/tracing';
 import { buildChatService } from './app';
+import { createKnowledge, knowledgeModeFromEnv, loadKnowledgeDocs } from './knowledge';
 
 if (require.main === module) {
   const real = createLlmClient();
@@ -26,9 +27,12 @@ if (require.main === module) {
   const webhookSecret = process.env.WEBHOOK_SECRET;
   if (webhookUrl && !webhookSecret)
     throw new Error('WEBHOOK_URL is set but WEBHOOK_SECRET is not.');
+  const knowledgeMode = knowledgeModeFromEnv();
+  const knowledge = createKnowledge(knowledgeMode, loadKnowledgeDocs());
   const { server } = buildChatService({
     llm,
     webhook: webhookUrl && webhookSecret ? { url: webhookUrl, secret: webhookSecret } : undefined,
+    knowledge,
   });
   const stop = (): void => {
     server.close();
@@ -51,5 +55,10 @@ if (require.main === module) {
     );
     if (!real)
       console.log('No ANTHROPIC_API_KEY set: using a scripted stand-in model, not a real LLM.');
+    console.log(
+      knowledge
+        ? `Knowledge mode: ${knowledge.mode} (reference documents passed to the model).`
+        : 'Knowledge mode: off (set KNOWLEDGE_MODE=rag or cag to pass reference documents).',
+    );
   });
 }
