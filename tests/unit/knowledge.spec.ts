@@ -24,7 +24,9 @@ test.describe('KNOWLEDGE_MODE', () => {
   });
 
   test('rejects anything else instead of falling back silently', () => {
-    expect(() => knowledgeModeFromEnv('bogus')).toThrow(/KNOWLEDGE_MODE must be one of off, rag, cag/);
+    expect(() => knowledgeModeFromEnv('bogus')).toThrow(
+      /KNOWLEDGE_MODE must be one of off, rag, cag/,
+    );
   });
 });
 

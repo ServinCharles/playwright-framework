@@ -37,7 +37,9 @@ export interface KnowledgeContext {
 }
 
 /** Reads KNOWLEDGE_MODE. Anything other than the three known values is an error, not a silent default. */
-export function knowledgeModeFromEnv(value: string | undefined = process.env.KNOWLEDGE_MODE): KnowledgeMode {
+export function knowledgeModeFromEnv(
+  value: string | undefined = process.env.KNOWLEDGE_MODE,
+): KnowledgeMode {
   if (value === undefined || value.trim() === '') return 'off';
   const mode = value.trim();
   if ((KNOWLEDGE_MODES as readonly string[]).includes(mode)) return mode as KnowledgeMode;

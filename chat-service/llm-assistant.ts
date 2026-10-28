@@ -100,9 +100,7 @@ export function createLlmAssistant(llm: LlmClient, options: AssistantOptions = {
         trace: { ...trace, guard: 'lost_card' },
       };
 
-    const system = options.knowledge
-      ? `${SYSTEM_PROMPT}\n${GROUNDING_RULES}`
-      : SYSTEM_PROMPT;
+    const system = options.knowledge ? `${SYSTEM_PROMPT}\n${GROUNDING_RULES}` : SYSTEM_PROMPT;
     const reference = options.knowledge?.referenceFor(message);
     const customer = `<customer_message>\n${message.trim()}\n</customer_message>`;
     const user = reference ? `${reference}\n\n${customer}` : customer;
