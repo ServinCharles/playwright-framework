@@ -20,6 +20,8 @@ COPY mock-chat-api ./mock-chat-api
 COPY observability ./observability
 COPY webhooks ./webhooks
 COPY utils ./utils
+COPY retrieval ./retrieval
+COPY knowledge ./knowledge
 # Run as a non-root user
 USER node
 EXPOSE 3101
