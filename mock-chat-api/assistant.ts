@@ -28,6 +28,8 @@ const HUMAN = /(speak|talk|chat|connect).*(person|human|adviser|advisor|agent|co
 const ADVICE =
   /should i (take|choose|fix|buy|remortgage)|which mortgage is best|is it a good idea|what would you (do|recommend)/i;
 const PASSWORD = /(reset|forgot|forgotten|change).*password|password.*(reset|forgot)/i;
+// Questions that ask for a rate, fee or limit the approved documents do not give.
+const FIGURE_QUESTION = /\b(rate|fee|charge|interest|borrow|loan to value|withdraw|earn)\b/i;
 const USERNAME = /(forgot|forgotten|recover|lost).*(username|user name|user id)/i;
 const AIP = /agreement in principle|decision in principle|\baip\b|\bdip\b/i;
 const AFFORD = /how much (can|could) i (borrow|get)|\bafford\b/i;
@@ -149,6 +151,15 @@ export function respond(
       escalated: true,
     };
   }
+
+  // Buggy mode invents a figure for a question the documents cannot answer.
+  // The hallucination checks in ai/eval/dataset.json must catch this.
+  if (buggy && FIGURE_QUESTION.test(text))
+    return {
+      reply: 'Our rate today is 4.25%, and the fee is £25.',
+      intent: 'fallback',
+      escalated: false,
+    };
 
   return {
     reply:
