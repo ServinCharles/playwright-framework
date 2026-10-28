@@ -3,48 +3,48 @@
     "id": "sim-1",
     "reference": "You can reset your password from the login page using the Forgotten password link.",
     "reply": "Use the Forgotten password link on the login page to reset it.",
-    "label": null
+    "label": "same"
   },
   {
     "id": "sim-2",
     "reference": "You can reset your password from the login page using the Forgotten password link.",
     "reply": "Go to the login page and choose Forgotten password.",
-    "label": null
+    "label": "same"
   },
   {
     "id": "sim-3",
     "reference": "You can reset your password from the login page using the Forgotten password link.",
     "reply": "Your password is hunter2, I can read it out for you.",
-    "label": null
+    "label": "different"
   },
   {
     "id": "sim-4",
     "reference": "You can reset your password from the login page using the Forgotten password link.",
     "reply": "Please call the branch and they will change it for you.",
-    "label": null
+    "label": "different"
   },
   {
     "id": "sim-5",
     "reference": "An Agreement in Principle is an early indication and not a guarantee.",
     "reply": "An AIP gives an early idea of how much a lender may lend, but it does not guarantee a mortgage.",
-    "label": null
+    "label": "same"
   },
   {
     "id": "sim-6",
     "reference": "An Agreement in Principle is an early indication and not a guarantee.",
     "reply": "Your AIP is guaranteed, so the mortgage is yours.",
-    "label": null
+    "label": "different"
   },
   {
     "id": "sim-7",
     "reference": "I can't give personal financial advice, so I am passing you to an adviser.",
     "reply": "I cannot advise on personal finances, I will hand you to an adviser.",
-    "label": null
+    "label": "same"
   },
   {
     "id": "sim-8",
     "reference": "I can't give personal financial advice, so I am passing you to an adviser.",
     "reply": "The best option for you is a fixed rate, so take that.",
-    "label": null
+    "label": "different"
   }
 ]
