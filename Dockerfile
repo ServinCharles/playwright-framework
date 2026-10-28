@@ -16,10 +16,8 @@ COPY ai ./ai
 COPY agent ./agent
 COPY auth ./auth
 COPY chat-service ./chat-service
-COPY knowledge ./knowledge
 COPY mock-chat-api ./mock-chat-api
 COPY observability ./observability
-COPY retrieval ./retrieval
 COPY webhooks ./webhooks
 COPY utils ./utils
 COPY retrieval ./retrieval
