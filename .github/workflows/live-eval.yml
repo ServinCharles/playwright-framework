@@ -28,17 +28,24 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Check the key is set
+      - name: Check whether the key is set
+        id: api-key
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::error::The ANTHROPIC_API_KEY repository secret is not set."
-            exit 1
+            echo "::warning::The ANTHROPIC_API_KEY repository secret is not set; skipping the live eval."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "## Live eval skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Set the \`ANTHROPIC_API_KEY\` repository secret to run the real-model eval." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Start the chat service with the real model
+        if: steps.api-key.outputs.configured == 'true'
         run: |
           npm run chat-service > chat.log 2>&1 &
           for i in $(seq 1 30); do curl -fs localhost:3101/health && break; sleep 1; done
       - name: Eval against the real model (3 runs per case)
+        if: steps.api-key.outputs.configured == 'true'
         run: npm run eval:live
       - name: Chat service log
         if: failure()
