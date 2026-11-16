@@ -126,7 +126,7 @@ Not run yet. The first run against the real model (Claude, three runs per case, 
 
 - Run it: `npm run eval:live` with `ANTHROPIC_API_KEY` and `CHAT_API_URL` set.
 - Limits for live runs: p95 latency under 5 seconds (`ai/eval/thresholds.live.json`). The mock keeps 500 ms (`ai/eval/thresholds.json`).
-- The nightly `live-eval` workflow runs the same thing. It needs the `ANTHROPIC_API_KEY` repository secret and does not run on pull requests.
+- The nightly `live-eval` workflow runs the same thing. It needs the `ANTHROPIC_API_KEY` repository secret and does not run on pull requests; without the secret, it skips the eval with a warning.
 
 ## Honest limitations
 
